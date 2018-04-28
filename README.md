@@ -1,4 +1,4 @@
-# go-json
+# jsontime
 
 A [json iterator](https://github.com/json-iterator/go) extension that support custom time format.
 
