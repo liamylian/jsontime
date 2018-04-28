@@ -20,10 +20,18 @@ type CustomTimeExtension struct {
 func (extension *CustomTimeExtension) UpdateStructDescriptor(structDescriptor *jsoniter.StructDescriptor) {
 
 	for _, binding := range structDescriptor.Fields {
+		var typeErr error
+		var isPtr bool
 		typeName := binding.Field.Type().String()
-		if typeName != "time.Time" && typeName != "*time.Time" {
+
+		if typeName == "time.Time" {
+			isPtr = false
+		} else if typeName == "*time.Time" {
+			isPtr = true
+		} else {
 			continue
 		}
+
 		timeFormat := binding.Field.Tag().Get("time_format")
 		if timeFormat == "sql_datetime" {
 			timeFormat = "2006-01-02 15:04:05"
@@ -37,12 +45,19 @@ func (extension *CustomTimeExtension) UpdateStructDescriptor(structDescriptor *j
 		}
 		if locTag := binding.Field.Tag().Get("time_location"); locTag != "" {
 			loc, err := time.LoadLocation(locTag)
-			if err == nil {
+			if err != nil {
+				typeErr = err
+			} else {
 				locale = loc
 			}
 		}
 
 		binding.Encoder = &funcEncoder{fun: func(ptr unsafe.Pointer, stream *jsoniter.Stream) {
+			if typeErr != nil {
+				stream.Error = typeErr
+				return
+			}
+
 			var format string
 			if timeFormat == "" {
 				format = time.RFC3339Nano
@@ -50,13 +65,29 @@ func (extension *CustomTimeExtension) UpdateStructDescriptor(structDescriptor *j
 				format = timeFormat
 			}
 
-			t := (*time.Time)(ptr)
-			lt := t.In(locale)
-			str := lt.Format(format)
-			stream.WriteString(str)
+			var tp *time.Time
+			if isPtr {
+				tpp := (**time.Time)(ptr)
+				tp = *(tpp)
+			} else {
+				tp = (*time.Time)(ptr)
+			}
+
+			if tp != nil {
+				lt := tp.In(locale)
+				str := lt.Format(format)
+				stream.WriteString(str)
+			} else {
+				stream.Write([]byte("null"))
+			}
 		}}
 
 		binding.Decoder = &funcDecoder{fun: func(ptr unsafe.Pointer, iter *jsoniter.Iterator) {
+			if typeErr != nil {
+				iter.Error = typeErr
+				return
+			}
+
 			var format string
 			if timeFormat == "" {
 				format = time.RFC3339
@@ -69,7 +100,16 @@ func (extension *CustomTimeExtension) UpdateStructDescriptor(structDescriptor *j
 				iter.Error = err
 				return
 			}
-			*((*time.Time)(ptr)) = t
+
+			if isPtr {
+				tpp := (**time.Time)(ptr)
+				*tpp = &t
+			} else {
+				tp := (*time.Time)(ptr)
+				if tp != nil {
+					*tp = t
+				}
+			}
 		}}
 	}
 }
