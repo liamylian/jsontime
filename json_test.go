@@ -43,3 +43,45 @@ func TestUnmarshalFormat(t *testing.T) {
 		t.Errorf("got:%v", book)
 	}
 }
+
+type User struct {
+	Id        int        `json:"id"`
+	UpdatedAt *time.Time `json:"updated_at" time_format:"sql_datetime" time_location:"Local"`
+	CreatedAt time.Time  `json:"created_at" time_format:"sql_datetime" time_location:"Local"`
+}
+
+func TestLocale(t *testing.T) {
+	user := User{
+		Id:        0,
+		UpdatedAt: nil,
+		CreatedAt: time.Date(0, 1, 1, 0, 0, 0, 0, time.Local),
+	}
+
+	bytes, err := json.Marshal(user)
+	if err != nil {
+		t.Error(err.Error())
+	}
+
+	if string(bytes) != `{"id":0,"updated_at":null,"created_at":"0000-00-00 00:00:00"}` {
+		t.Errorf("got: %s", bytes)
+	}
+}
+
+func TestUnMarshalZero(t *testing.T) {
+	user := User{}
+	jsonBytes := []byte(`{"id":0,"updated_at":null,"created_at":"0000-00-00 00:00:00"}`)
+
+	err := json.Unmarshal(jsonBytes, &user)
+	if err != nil {
+		t.Error(err.Error())
+	}
+
+	bytes, err := json.Marshal(user)
+	if err != nil {
+		t.Error(err.Error())
+	}
+
+	if string(bytes) != `{"id":0,"updated_at":null,"created_at":"0000-00-00 00:00:00"}` {
+		t.Errorf("got: %s", bytes)
+	}
+}

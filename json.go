@@ -32,7 +32,8 @@ func (extension *CustomTimeExtension) UpdateStructDescriptor(structDescriptor *j
 			continue
 		}
 
-		timeFormat := binding.Field.Tag().Get("time_format")
+		formatTag := binding.Field.Tag().Get("time_format")
+		timeFormat := formatTag
 		if timeFormat == "sql_datetime" {
 			timeFormat = "2006-01-02 15:04:05"
 		} else if timeFormat == "sql_date" {
@@ -76,6 +77,11 @@ func (extension *CustomTimeExtension) UpdateStructDescriptor(structDescriptor *j
 			if tp != nil {
 				lt := tp.In(locale)
 				str := lt.Format(format)
+				if formatTag == "sql_date" && str == "0000-01-01" {
+					str = "0000-00-00"
+				} else if formatTag == "sql_datetime" && str == "0000-01-01 00:00:00" {
+					str = "0000-00-00 00:00:00"
+				}
 				stream.WriteString(str)
 			} else {
 				stream.Write([]byte("null"))
@@ -95,19 +101,31 @@ func (extension *CustomTimeExtension) UpdateStructDescriptor(structDescriptor *j
 				format = timeFormat
 			}
 
-			t, err := time.ParseInLocation(format, iter.ReadString(), locale)
-			if err != nil {
-				iter.Error = err
-				return
+			str := iter.ReadString()
+			var t *time.Time
+			if str != "" {
+				var err error
+				tmp, err := time.ParseInLocation(format, str, locale)
+				if err != nil {
+					if _, ok := err.(*time.ParseError); ok {
+						tmp = time.Date(0, 1, 1, 0, 0, 0, 0, locale)
+					} else {
+						iter.Error = err
+						return
+					}
+				}
+				t = &tmp
+			} else {
+				t = nil
 			}
 
 			if isPtr {
 				tpp := (**time.Time)(ptr)
-				*tpp = &t
+				*tpp = t
 			} else {
 				tp := (*time.Time)(ptr)
 				if tp != nil {
-					*tp = t
+					*tp = *t
 				}
 			}
 		}}
