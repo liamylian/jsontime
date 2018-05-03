@@ -53,6 +53,14 @@ func (extension *CustomTimeExtension) UpdateStructDescriptor(structDescriptor *j
 			}
 		}
 
+		var isSnap bool
+		snapTag := binding.Field.Tag().Get("time_snap")
+		if snapTag == "" && (formatTag == "sql_datetime" || formatTag == "sql_date") {
+			isSnap = true
+		} else {
+			isSnap, _ = strconv.ParseBool(binding.Field.Tag().Get("time_snap"))
+		}
+
 		binding.Encoder = &funcEncoder{fun: func(ptr unsafe.Pointer, stream *jsoniter.Stream) {
 			if typeErr != nil {
 				stream.Error = typeErr
@@ -77,9 +85,9 @@ func (extension *CustomTimeExtension) UpdateStructDescriptor(structDescriptor *j
 			if tp != nil {
 				lt := tp.In(locale)
 				str := lt.Format(format)
-				if formatTag == "sql_date" && str == "0000-01-01" {
+				if formatTag == "sql_date" && (str == "0000-01-01" || (isSnap && lt.Unix() <= 0)) {
 					str = "0000-00-00"
-				} else if formatTag == "sql_datetime" && str == "0000-01-01 00:00:00" {
+				} else if formatTag == "sql_datetime" && (str == "0000-01-01 00:00:00" || (isSnap && lt.Unix() <= 0)) {
 					str = "0000-00-00 00:00:00"
 				}
 				stream.WriteString(str)
