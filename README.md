@@ -37,16 +37,18 @@ import(
 var json = jsontime.ConfigWithCustomTimeFormat
 
 type Book struct {
-	Id        int           `json:"id"`
-	UpdatedAt *time.Time    `json:"updated_at" time_format:"sql_date" time_utc:"true"`
-	CreatedAt time.Time     `json:"created_at" time_format:"sql_datetime" time_location:"UTC"`
+	Id          int           `json:"id"`
+	PublishedAt time.Time     `json:"published_at" time_format:"2006-01-02 15:04:05"`
+	UpdatedAt   *time.Time    `json:"updated_at" time_format:"sql_date" time_utc:"true"`
+	CreatedAt   time.Time     `json:"created_at" time_format:"sql_datetime" time_location:"UTC"`
 }
 
 func main() {
 	book := Book {
-		Id:         1,
-		UpdatedAt:  nil,
-		CreatedAt:  time.Now(),
+		Id:          1,
+		PublishedAt: time.Now(),
+		UpdatedAt:   nil,
+		CreatedAt:   time.Now(),
 	}
 	
 	bytes, _ := json.Marshal(book)
