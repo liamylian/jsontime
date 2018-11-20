@@ -132,7 +132,7 @@ func (extension *CustomTimeExtension) UpdateStructDescriptor(structDescriptor *j
 				*tpp = t
 			} else {
 				tp := (*time.Time)(ptr)
-				if tp != nil {
+				if tp != nil && t != nil{
 					*tp = *t
 				}
 			}
