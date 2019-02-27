@@ -7,7 +7,28 @@ import (
 	"unsafe"
 )
 
-var ConfigWithCustomTimeFormat = jsoniter.ConfigCompatibleWithStandardLibrary
+var (
+  ConfigWithCustomTimeFormat = jsoniter.ConfigCompatibleWithStandardLibrary
+  commonFormats              = map[string]string{
+    "ANSIC":        "Mon Jan _2 15:04:05 2006",
+    "UnixDate":     "Mon Jan _2 15:04:05 MST 2006",
+    "RubyDate":     "Mon Jan 02 15:04:05 -0700 2006",
+    "RFC822":       "02 Jan 06 15:04 MST",
+    "RFC822Z":      "02 Jan 06 15:04 -0700",
+    "RFC850":       "Monday, 02-Jan-06 15:04:05 MST",
+    "RFC1123":      "Mon, 02 Jan 2006 15:04:05 MST",
+    "RFC1123Z":     "Mon, 02 Jan 2006 15:04:05 -0700",
+    "RFC3339":      "2006-01-02T15:04:05Z07:00",
+    "RFC3339Nano":  "2006-01-02T15:04:05.999999999Z07:00",
+    "Kitchen":      "3:04PM",
+    "Stamp":        "Jan _2 15:04:05",
+    "StampMilli":   "Jan _2 15:04:05.000",
+    "StampMicro":   "Jan _2 15:04:05.000000",
+    "StampNano":    "Jan _2 15:04:05.000000000",
+    "sql_datetime": "2006-01-02 15:04:05",
+    "sql_date":     "2006-01-02",
+  }
+)
 
 func init() {
 	ConfigWithCustomTimeFormat.RegisterExtension(&CustomTimeExtension{})
@@ -32,13 +53,16 @@ func (extension *CustomTimeExtension) UpdateStructDescriptor(structDescriptor *j
 			continue
 		}
 
-		formatTag := binding.Field.Tag().Get("time_format")
-		timeFormat := formatTag
-		if timeFormat == "sql_datetime" {
-			timeFormat = "2006-01-02 15:04:05"
-		} else if timeFormat == "sql_date" {
-			timeFormat = "2006-01-02"
-		}
+    var timeFormat string
+    formatTag := binding.Field.Tag().Get("time_format")
+    if format, ok := commonFormats[formatTag]; ok {
+      timeFormat = format
+    } else {
+      timeFormat = formatTag
+    }
+    if timeFormat == "" {
+      timeFormat = time.RFC3339Nano
+    }
 
 		locale := time.Local
 		if isUTC, _ := strconv.ParseBool(binding.Field.Tag().Get("time_utc")); isUTC {
@@ -67,13 +91,6 @@ func (extension *CustomTimeExtension) UpdateStructDescriptor(structDescriptor *j
 				return
 			}
 
-			var format string
-			if timeFormat == "" {
-				format = time.RFC3339Nano
-			} else {
-				format = timeFormat
-			}
-
 			var tp *time.Time
 			if isPtr {
 				tpp := (**time.Time)(ptr)
@@ -84,7 +101,7 @@ func (extension *CustomTimeExtension) UpdateStructDescriptor(structDescriptor *j
 
 			if tp != nil {
 				lt := tp.In(locale)
-				str := lt.Format(format)
+				str := lt.Format(timeFormat)
 				if formatTag == "sql_date" && (str == "0000-01-01" || (isSnap && lt.Unix() <= 0)) {
 					str = "0000-00-00"
 				} else if formatTag == "sql_datetime" && (str == "0000-01-01 00:00:00" || (isSnap && lt.Unix() <= 0)) {
@@ -102,18 +119,11 @@ func (extension *CustomTimeExtension) UpdateStructDescriptor(structDescriptor *j
 				return
 			}
 
-			var format string
-			if timeFormat == "" {
-				format = time.RFC3339
-			} else {
-				format = timeFormat
-			}
-
 			str := iter.ReadString()
 			var t *time.Time
 			if str != "" {
 				var err error
-				tmp, err := time.ParseInLocation(format, str, locale)
+				tmp, err := time.ParseInLocation(timeFormat, str, locale)
 				if err != nil {
 					if _, ok := err.(*time.ParseError); ok {
 						tmp = time.Date(0, 1, 1, 0, 0, 0, 0, locale)
