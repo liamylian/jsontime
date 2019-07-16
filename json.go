@@ -1,37 +1,87 @@
 package jsontime
 
 import (
-	"github.com/json-iterator/go"
 	"time"
-	"strconv"
 	"unsafe"
+
+	"github.com/json-iterator/go"
 )
 
+// time format alias
+const (
+	ANSIC       = "ANSIC"
+	UnixDate    = "UnixDate"
+	RubyDate    = "RubyDate"
+	RFC822      = "RFC822"
+	RFC822Z     = "RFC822Z"
+	RFC850      = "RFC850"
+	RFC1123     = "RFC1123"
+	RFC1123Z    = "RFC1123Z"
+	RFC3339     = "RFC3339"
+	RFC3339Nano = "RFC3339Nano"
+	Kitchen     = "Kitchen"
+	Stamp       = "Stamp"
+	StampMilli  = "StampMilli"
+	StampMicro  = "StampMicro"
+	StampNano   = "StampNano"
+)
+
+// time zone alias
+const (
+	Local = "Local"
+	UTC   = "UTC"
+)
+
+const (
+	tagNameTimeFormat   = "time_format"
+	tagNameTimeLocation = "time_location"
+)
+
+var ConfigWithCustomTimeFormat = jsoniter.ConfigCompatibleWithStandardLibrary
+
+var formatAlias = map[string]string{
+	ANSIC:       time.ANSIC,
+	UnixDate:    time.UnixDate,
+	RubyDate:    time.RubyDate,
+	RFC822:      time.RFC822,
+	RFC822Z:     time.RFC822Z,
+	RFC850:      time.RFC850,
+	RFC1123:     time.RFC1123,
+	RFC1123Z:    time.RFC1123Z,
+	RFC3339:     time.RFC3339,
+	RFC3339Nano: time.RFC3339Nano,
+	Kitchen:     time.Kitchen,
+	Stamp:       time.Stamp,
+	StampMilli:  time.StampMilli,
+	StampMicro:  time.StampMicro,
+	StampNano:   time.StampNano,
+}
+
+var localeAlias = map[string]*time.Location{
+	Local: time.Local,
+	UTC:   time.UTC,
+}
+
 var (
-  ConfigWithCustomTimeFormat = jsoniter.ConfigCompatibleWithStandardLibrary
-  commonFormats              = map[string]string{
-    "ANSIC":        "Mon Jan _2 15:04:05 2006",
-    "UnixDate":     "Mon Jan _2 15:04:05 MST 2006",
-    "RubyDate":     "Mon Jan 02 15:04:05 -0700 2006",
-    "RFC822":       "02 Jan 06 15:04 MST",
-    "RFC822Z":      "02 Jan 06 15:04 -0700",
-    "RFC850":       "Monday, 02-Jan-06 15:04:05 MST",
-    "RFC1123":      "Mon, 02 Jan 2006 15:04:05 MST",
-    "RFC1123Z":     "Mon, 02 Jan 2006 15:04:05 -0700",
-    "RFC3339":      "2006-01-02T15:04:05Z07:00",
-    "RFC3339Nano":  "2006-01-02T15:04:05.999999999Z07:00",
-    "Kitchen":      "3:04PM",
-    "Stamp":        "Jan _2 15:04:05",
-    "StampMilli":   "Jan _2 15:04:05.000",
-    "StampMicro":   "Jan _2 15:04:05.000000",
-    "StampNano":    "Jan _2 15:04:05.000000000",
-    "sql_datetime": "2006-01-02 15:04:05",
-    "sql_date":     "2006-01-02",
-  }
+	defaultFormat = time.RFC3339
+	defaultLocale = time.Local
 )
 
 func init() {
 	ConfigWithCustomTimeFormat.RegisterExtension(&CustomTimeExtension{})
+}
+
+func AddTimeFormatAlias(alias, format string) {
+	formatAlias[alias] = format
+}
+
+func AddLocaleAlias(alias string, locale *time.Location) {
+	localeAlias[alias] = locale
+}
+
+func SetDefaultTimeFormat(timeFormat string, timeLocation *time.Location) {
+	defaultFormat = timeFormat
+	defaultLocale = timeLocation
 }
 
 type CustomTimeExtension struct {
@@ -39,12 +89,10 @@ type CustomTimeExtension struct {
 }
 
 func (extension *CustomTimeExtension) UpdateStructDescriptor(structDescriptor *jsoniter.StructDescriptor) {
-
 	for _, binding := range structDescriptor.Fields {
 		var typeErr error
 		var isPtr bool
 		typeName := binding.Field.Type().String()
-
 		if typeName == "time.Time" {
 			isPtr = false
 		} else if typeName == "*time.Time" {
@@ -53,36 +101,25 @@ func (extension *CustomTimeExtension) UpdateStructDescriptor(structDescriptor *j
 			continue
 		}
 
-    var timeFormat string
-    formatTag := binding.Field.Tag().Get("time_format")
-    if format, ok := commonFormats[formatTag]; ok {
-      timeFormat = format
-    } else {
-      timeFormat = formatTag
-    }
-    if timeFormat == "" {
-      timeFormat = time.RFC3339Nano
-    }
-
-		locale := time.Local
-		if isUTC, _ := strconv.ParseBool(binding.Field.Tag().Get("time_utc")); isUTC {
-			locale = time.UTC
+		timeFormat := defaultFormat
+		formatTag := binding.Field.Tag().Get(tagNameTimeFormat)
+		if format, ok := formatAlias[formatTag]; ok {
+			timeFormat = format
+		} else if formatTag != "" {
+			timeFormat = formatTag
 		}
-		if locTag := binding.Field.Tag().Get("time_location"); locTag != "" {
-			loc, err := time.LoadLocation(locTag)
-			if err != nil {
-				typeErr = err
-			} else {
+		locale := defaultLocale
+		if localeTag := binding.Field.Tag().Get(tagNameTimeLocation); localeTag != "" {
+			if loc, ok := localeAlias[localeTag]; ok {
 				locale = loc
+			} else {
+				loc, err := time.LoadLocation(localeTag)
+				if err != nil {
+					typeErr = err
+				} else {
+					locale = loc
+				}
 			}
-		}
-
-		var isSnap bool
-		snapTag := binding.Field.Tag().Get("time_snap")
-		if snapTag == "" && (formatTag == "sql_datetime" || formatTag == "sql_date") {
-			isSnap = true
-		} else {
-			isSnap, _ = strconv.ParseBool(binding.Field.Tag().Get("time_snap"))
 		}
 
 		binding.Encoder = &funcEncoder{fun: func(ptr unsafe.Pointer, stream *jsoniter.Stream) {
@@ -102,17 +139,11 @@ func (extension *CustomTimeExtension) UpdateStructDescriptor(structDescriptor *j
 			if tp != nil {
 				lt := tp.In(locale)
 				str := lt.Format(timeFormat)
-				if formatTag == "sql_date" && (str == "0000-01-01" || (isSnap && lt.Unix() <= 0)) {
-					str = "0000-00-00"
-				} else if formatTag == "sql_datetime" && (str == "0000-01-01 00:00:00" || (isSnap && lt.Unix() <= 0)) {
-					str = "0000-00-00 00:00:00"
-				}
 				stream.WriteString(str)
 			} else {
 				stream.Write([]byte("null"))
 			}
 		}}
-
 		binding.Decoder = &funcDecoder{fun: func(ptr unsafe.Pointer, iter *jsoniter.Iterator) {
 			if typeErr != nil {
 				iter.Error = typeErr
@@ -125,12 +156,8 @@ func (extension *CustomTimeExtension) UpdateStructDescriptor(structDescriptor *j
 				var err error
 				tmp, err := time.ParseInLocation(timeFormat, str, locale)
 				if err != nil {
-					if _, ok := err.(*time.ParseError); ok {
-						tmp = time.Date(0, 1, 1, 0, 0, 0, 0, locale)
-					} else {
-						iter.Error = err
-						return
-					}
+					iter.Error = err
+					return
 				}
 				t = &tmp
 			} else {
@@ -142,7 +169,7 @@ func (extension *CustomTimeExtension) UpdateStructDescriptor(structDescriptor *j
 				*tpp = t
 			} else {
 				tp := (*time.Time)(ptr)
-				if tp != nil && t != nil{
+				if tp != nil && t != nil {
 					*tp = *t
 				}
 			}
