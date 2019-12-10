@@ -36,18 +36,20 @@ func TestTimeFormat(t *testing.T) {
 }
 
 func TestLocale(t *testing.T) {
+	timeZoneShanghai, _ := time.LoadLocation("Asia/Shanghai")
+	AddLocaleAlias("shanghai", timeZoneShanghai)
 	type Book struct {
 		Id          int        `json:"id"`
 		PublishedAt time.Time  `json:"published_at" time_location:"UTC"`
-		UpdatedAt   *time.Time `json:"updated_at" time_location:"Local"`
-		CreatedAt   time.Time  `json:"created_at" time_location:"Local"`
+		UpdatedAt   *time.Time `json:"updated_at" time_location:"shanghai"`
+		CreatedAt   time.Time  `json:"created_at" time_location:"shanghai"`
 	}
 
 	book := Book{
 		Id:          0,
-		PublishedAt: time.Date(2018, 1, 1, 0, 0, 0, 0, time.Local),
+		PublishedAt: time.Date(2018, 1, 1, 0, 0, 0, 0, timeZoneShanghai),
 		UpdatedAt:   nil,
-		CreatedAt:   time.Date(2018, 1, 1, 0, 0, 0, 0, time.Local),
+		CreatedAt:   time.Date(2018, 1, 1, 0, 0, 0, 0, timeZoneShanghai),
 	}
 
 	bytes, err := json.Marshal(book)
@@ -58,8 +60,8 @@ func TestLocale(t *testing.T) {
 func TestUnMarshalZero(t *testing.T) {
 	type Book struct {
 		Id        int        `json:"id"`
-		UpdatedAt *time.Time `json:"updated_at" time_location:"Local"`
-		CreatedAt time.Time  `json:"created_at" time_location:"Local"`
+		UpdatedAt *time.Time `json:"updated_at" time_location:"UTC"`
+		CreatedAt time.Time  `json:"created_at" time_location:"UTC"`
 	}
 	book := Book{}
 	jsonBytes := []byte(`{"id":0,"updated_at":null,"created_at":"0000-00-00 00:00:00"}`)
