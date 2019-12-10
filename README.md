@@ -1,5 +1,7 @@
 # jsontime
 
+![](https://github.com/liamylian/jsontime/workflows/Test/badge.svg)
+
 A [json iterator](https://github.com/json-iterator/go) extension that support custom time format.
 
 ## Usage
