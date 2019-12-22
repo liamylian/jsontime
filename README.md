@@ -10,7 +10,7 @@ A [json iterator](https://github.com/json-iterator/go) extension that support cu
 
 or
 
-`go mod require github.com/liamylian/jsontime/v2@v2.0.1`
+`go mod edit -require=github.com/liamylian/jsontime/v2@v2.0.1`
 
 
 ## Usage
