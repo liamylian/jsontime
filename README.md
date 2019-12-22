@@ -4,6 +4,15 @@
 
 A [json iterator](https://github.com/json-iterator/go) extension that support custom time format.
 
+# Install
+
+`go get github.com/liamylian/jsontime/v2`
+
+or
+
+`go mod require github.com/liamylian/jsontime/v2@v2.0.1`
+
+
 ## Usage
 100% compatibility with standard lib
 
@@ -17,7 +26,7 @@ json.Unmarshal(input, &data)
 
 with
 ```go
-import "github.com/liamylian/jsontime"
+import "github.com/liamylian/jsontime/v2"
 
 var json = jsontime.ConfigWithCustomTimeFormat
 
@@ -34,7 +43,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/liamylian/jsontime"
+	"github.com/liamylian/jsontime/v2"
 )
 
 var json = jsontime.ConfigWithCustomTimeFormat
