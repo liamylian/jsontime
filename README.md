@@ -42,8 +42,8 @@ package main
 import (
 	"fmt"
 	"time"
-
-	"github.com/liamylian/jsontime/v2"
+	
+	jsontime "github.com/liamylian/jsontime/v2/v2"
 )
 
 var json = jsontime.ConfigWithCustomTimeFormat
