@@ -26,7 +26,7 @@ json.Unmarshal(input, &data)
 
 with
 ```go
-import "github.com/liamylian/jsontime/v2"
+import jsontime "github.com/liamylian/jsontime/v2/v2"
 
 var json = jsontime.ConfigWithCustomTimeFormat
 
