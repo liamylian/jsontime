@@ -106,6 +106,8 @@ func TestAlias(t *testing.T) {
 
 	timeExtension.AddTimeFormatAlias("sql_datetime", "2006-01-02 15:04:05")
 	timeExtension.AddLocaleAlias("shanghai", timeZoneShanghai)
+	timeExtension.SetDefaultTimeFormat(time.RFC3339, timeZoneShanghai)
+
 	t2018 := time.Date(2018, 1, 1, 0, 0, 0, 0, timeZoneShanghai)
 	book1 := Book{
 		Id:        1,
