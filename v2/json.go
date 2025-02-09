@@ -3,6 +3,7 @@ package v2
 import (
 	"time"
 	"unsafe"
+	"maps"
 
 	"github.com/json-iterator/go"
 )
@@ -37,9 +38,7 @@ const (
 	tagNameTimeLocation = "time_location"
 )
 
-var ConfigWithCustomTimeFormat = jsoniter.ConfigCompatibleWithStandardLibrary
-
-var formatAlias = map[string]string{
+var _formatAlias = map[string]string{
 	ANSIC:       time.ANSIC,
 	UnixDate:    time.UnixDate,
 	RubyDate:    time.RubyDate,
@@ -57,35 +56,39 @@ var formatAlias = map[string]string{
 	StampNano:   time.StampNano,
 }
 
-var localeAlias = map[string]*time.Location{
+var _localeAlias = map[string]*time.Location{
 	Local: time.Local,
 	UTC:   time.UTC,
 }
 
-var (
-	defaultFormat = time.RFC3339
-	defaultLocale = time.Local
-)
-
-func init() {
-	ConfigWithCustomTimeFormat.RegisterExtension(&CustomTimeExtension{})
-}
-
-func AddTimeFormatAlias(alias, format string) {
-	formatAlias[alias] = format
-}
-
-func AddLocaleAlias(alias string, locale *time.Location) {
-	localeAlias[alias] = locale
-}
-
-func SetDefaultTimeFormat(timeFormat string, timeLocation *time.Location) {
-	defaultFormat = timeFormat
-	defaultLocale = timeLocation
-}
-
 type CustomTimeExtension struct {
 	jsoniter.DummyExtension
+	formatAlias 	map[string]string
+	localeAlias 	map[string]*time.Location
+	defaultFormat 	string
+	defaultLocale 	*time.Location
+}
+
+func NewCustomTimeExtension() *CustomTimeExtension {
+	return &CustomTimeExtension{
+		formatAlias: maps.Clone(_formatAlias),
+		localeAlias: maps.Clone(_localeAlias),
+		defaultFormat: time.RFC3339,
+		defaultLocale: time.Local,
+	}
+}
+
+func (extension *CustomTimeExtension) AddTimeFormatAlias(alias, format string) {
+	extension.formatAlias[alias] = format
+}
+
+func (extension *CustomTimeExtension) AddLocaleAlias(alias string, locale *time.Location) {
+	extension.localeAlias[alias] = locale
+}
+
+func (extension *CustomTimeExtension) SetDefaultTimeFormat(timeFormat string, timeLocation *time.Location) {
+	extension.defaultFormat = timeFormat
+	extension.defaultLocale = timeLocation
 }
 
 func (extension *CustomTimeExtension) UpdateStructDescriptor(structDescriptor *jsoniter.StructDescriptor) {
@@ -101,16 +104,16 @@ func (extension *CustomTimeExtension) UpdateStructDescriptor(structDescriptor *j
 			continue
 		}
 
-		timeFormat := defaultFormat
+		timeFormat := extension.defaultFormat
 		formatTag := binding.Field.Tag().Get(tagNameTimeFormat)
-		if format, ok := formatAlias[formatTag]; ok {
+		if format, ok := extension.formatAlias[formatTag]; ok {
 			timeFormat = format
 		} else if formatTag != "" {
 			timeFormat = formatTag
 		}
-		locale := defaultLocale
+		locale := extension.defaultLocale
 		if localeTag := binding.Field.Tag().Get(tagNameTimeLocation); localeTag != "" {
-			if loc, ok := localeAlias[localeTag]; ok {
+			if loc, ok := extension.localeAlias[localeTag]; ok {
 				locale = loc
 			} else {
 				loc, err := time.LoadLocation(localeTag)
