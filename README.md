@@ -42,7 +42,7 @@ package main
 import (
 	"fmt"
 	"time"
-	
+
 	jsontime "github.com/liamylian/jsontime/v2/v2"
 )
 
@@ -93,3 +93,4 @@ bytes, _ := json.Marshal(book)
 ## Notice
 
 Because there are two maps in the package, that is not thread safe. So it is suggested to call `AddTimeFormatAlias`, `AddLocaleAlias` only once, right before calling `Marshal` and `UnMarshal`. Or you should make sure not to call them at the same time (writing and reading map at the same time will panic).
+
