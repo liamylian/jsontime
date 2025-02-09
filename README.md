@@ -1,16 +1,16 @@
 # jsontime
 
-![](https://github.com/liamylian/jsontime/workflows/Test/badge.svg)
+![](https://github.com/yatzek/jsontime/workflows/Test/badge.svg)
 
 A [json iterator](https://github.com/json-iterator/go) extension that support custom time format.
 
 # Install
 
-`go get github.com/liamylian/jsontime/v2`
+`go get github.com/yatzek/jsontime/v2`
 
 or
 
-`go mod edit -require=github.com/liamylian/jsontime/v2@v2.0.0`
+`go mod edit -require=github.com/yatzek/jsontime/v2@v2.0.0`
 
 
 ## Usage
@@ -26,9 +26,14 @@ json.Unmarshal(input, &data)
 
 with
 ```go
-import jsontime "github.com/liamylian/jsontime/v2/v2"
+import (
+	jsoniter "github.com/json-iterator/go"
+	jsontime "github.com/yatzek/jsontime/v2"
+)
 
-var json = jsontime.ConfigWithCustomTimeFormat
+json := jsoniter.ConfigCompatibleWithStandardLibrary
+timeExtension := jsontime.NewCustomTimeExtension()
+json.RegisterExtension(timeExtension)
 
 json.Marshal(&data)
 json.Unmarshal(input, &data)
@@ -42,15 +47,9 @@ package main
 import (
 	"fmt"
 	"time"
-
-	jsontime "github.com/liamylian/jsontime/v2/v2"
+	jsoniter "github.com/json-iterator/go"
+	jsontime "github.com/yatzek/jsontime/v2"
 )
-
-var json = jsontime.ConfigWithCustomTimeFormat
-
-func init() {
-	jsontime.SetDefaultTimeFormat(time.RFC3339, time.Local)
-}
 
 type Book struct {
 	Id          int        `json:"id"`
@@ -60,6 +59,11 @@ type Book struct {
 }
 
 func main() {
+	json := jsoniter.ConfigCompatibleWithStandardLibrary
+	timeExtension := jsontime.NewCustomTimeExtension()
+	timeExtension.SetDefaultTimeFormat(time.RFC3339, time.Local)
+	json.RegisterExtension(timeExtension)
+
 	book := Book{
 		Id:          1,
 		PublishedAt: time.Now(),
@@ -75,10 +79,13 @@ func main() {
 ## Advanced Usage
 
 ```go
-var json = jsontime.ConfigWithCustomTimeFormat
+json := jsoniter.ConfigCompatibleWithStandardLibrary
+timeExtension := jsontime.NewCustomTimeExtension()
+
 timeZoneShanghai, _ := time.LoadLocation("Asia/Shanghai")
-jsontime.AddTimeFormatAlias("sql_datetime", "2006-01-02 15:04:05")
-jsontime.AddLocaleAlias("shanghai", timeZoneShanghai)
+timeExtension.AddTimeFormatAlias("sql_datetime", "2006-01-02 15:04:05")
+timeExtension.AddLocaleAlias("shanghai", timeZoneShanghai)
+json.RegisterExtension(timeExtension)
 
 type Book struct {
 	Id          int        `json:"id"`
