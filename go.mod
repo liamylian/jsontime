@@ -1,6 +1,6 @@
 module github.com/yatzek/jsontime/v2
 
-go 1.18
+go 1.23
 
 require (
 	github.com/json-iterator/go v1.1.9
