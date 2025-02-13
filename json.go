@@ -1,9 +1,9 @@
-package v2
+package jsontime
 
 import (
+	"maps"
 	"time"
 	"unsafe"
-	"maps"
 
 	"github.com/json-iterator/go"
 )
@@ -63,16 +63,16 @@ var _localeAlias = map[string]*time.Location{
 
 type CustomTimeExtension struct {
 	jsoniter.DummyExtension
-	formatAlias 	map[string]string
-	localeAlias 	map[string]*time.Location
-	defaultFormat 	string
-	defaultLocale 	*time.Location
+	formatAlias   map[string]string
+	localeAlias   map[string]*time.Location
+	defaultFormat string
+	defaultLocale *time.Location
 }
 
 func NewCustomTimeExtension() *CustomTimeExtension {
 	return &CustomTimeExtension{
-		formatAlias: maps.Clone(_formatAlias),
-		localeAlias: maps.Clone(_localeAlias),
+		formatAlias:   maps.Clone(_formatAlias),
+		localeAlias:   maps.Clone(_localeAlias),
 		defaultFormat: time.RFC3339,
 		defaultLocale: time.Local,
 	}

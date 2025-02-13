@@ -1,4 +1,4 @@
-package v2
+package jsontime
 
 import (
 	"testing"
@@ -7,7 +7,6 @@ import (
 	jsoniter "github.com/json-iterator/go"
 	"github.com/stretchr/testify/assert"
 )
-
 
 func setup() (jsoniter.API, *CustomTimeExtension) {
 	json := jsoniter.Config{
@@ -21,7 +20,6 @@ func setup() (jsoniter.API, *CustomTimeExtension) {
 
 	return json, timeExtension
 }
-
 
 func TestTimeFormat(t *testing.T) {
 	json, timeExtension := setup()
