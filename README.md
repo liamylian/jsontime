@@ -34,6 +34,7 @@ import (
 )
 
 json := jsoniter.ConfigCompatibleWithStandardLibrary
+json.RegisterExtension(jsontime.NewCustomTimeExtension())
 
 json.Marshal(data)
 json.Unmarshal(input, &data)
@@ -47,6 +48,7 @@ package main
 import (
 	"fmt"
 	"time"
+
 	jsoniter "github.com/json-iterator/go"
 	jsontime "github.com/liamylian/jsontime/v3"
 )
@@ -78,23 +80,43 @@ func main() {
 
 ## Advanced Usage
 
-```
-json := jsoniter.ConfigCompatibleWithStandardLibrary
-timeExtension := jsontime.NewCustomTimeExtension()
+```go
+package main
 
-timeZoneShanghai, _ := time.LoadLocation("Asia/Shanghai")
-timeExtension.AddTimeFormatAlias("sql_datetime", "2006-01-02 15:04:05")
-timeExtension.AddLocaleAlias("shanghai", timeZoneShanghai)
-json.RegisterExtension(timeExtension)
+import (
+	"fmt"
+	"time"
+
+	jsoniter "github.com/json-iterator/go"
+	jsontime "github.com/liamylian/jsontime/v3"
+)
 
 type Book struct {
-    Id          int        `json:"id"`
-    PublishedAt time.Time  `json:"published_at" time_format:"sql_datetime" time_location:"shanghai"`
-    UpdatedAt   *time.Time `json:"updated_at" time_format:"sql_datetime" time_location:"shanghai"`
-    CreatedAt   time.Time  `json:"created_at" time_format:"sql_datetime" time_location:"shanghai"`
+	Id          int        `json:"id"`
+	PublishedAt time.Time  `json:"published_at" time_format:"sql_datetime" time_location:"shanghai"`
+	UpdatedAt   *time.Time `json:"updated_at" time_format:"sql_datetime" time_location:"shanghai"`
+	CreatedAt   time.Time  `json:"created_at" time_format:"sql_datetime" time_location:"shanghai"`
 }
 
-bytes, _ := json.Marshal(book)
+func main() {
+	json := jsoniter.ConfigCompatibleWithStandardLibrary
+	timeExtension := jsontime.NewCustomTimeExtension()
+
+	timeZoneShanghai, _ := time.LoadLocation("Asia/Shanghai")
+	timeExtension.AddTimeFormatAlias("sql_datetime", "2006-01-02 15:04:05")
+	timeExtension.AddLocaleAlias("shanghai", timeZoneShanghai)
+	json.RegisterExtension(timeExtension)
+
+	book := Book{
+		Id:          1,
+		PublishedAt: time.Now(),
+		UpdatedAt:   nil,
+		CreatedAt:   time.Now(),
+	}
+	bytes, _ := json.Marshal(book)
+	fmt.Printf("%s", bytes)
+}
+
 ```
 
 ## Notice
