@@ -1,14 +1,31 @@
 package v2
 
 import (
-	"github.com/stretchr/testify/assert"
 	"testing"
 	"time"
+
+	jsoniter "github.com/json-iterator/go"
+	"github.com/stretchr/testify/assert"
 )
 
-var json = ConfigWithCustomTimeFormat
+
+func setup() (jsoniter.API, *CustomTimeExtension) {
+	json := jsoniter.Config{
+		EscapeHTML:             true,
+		SortMapKeys:            true,
+		ValidateJsonRawMessage: true,
+	}.Froze()
+
+	timeExtension := NewCustomTimeExtension()
+	json.RegisterExtension(timeExtension)
+
+	return json, timeExtension
+}
+
 
 func TestTimeFormat(t *testing.T) {
+	json, timeExtension := setup()
+
 	type Book struct {
 		Id          int        `json:"id"`
 		PublishedAt *time.Time `json:"published_at"`
@@ -18,7 +35,7 @@ func TestTimeFormat(t *testing.T) {
 
 	timeZone, err := time.LoadLocation("Asia/Shanghai")
 	assert.Nil(t, err)
-	SetDefaultTimeFormat(time.RFC3339, timeZone)
+	timeExtension.SetDefaultTimeFormat(time.RFC3339, timeZone)
 	t2018 := time.Date(2018, 1, 1, 0, 0, 0, 0, timeZone)
 	book1 := Book{
 		Id:        1,
@@ -36,8 +53,10 @@ func TestTimeFormat(t *testing.T) {
 }
 
 func TestLocale(t *testing.T) {
+	json, timeExtension := setup()
+
 	timeZoneShanghai, _ := time.LoadLocation("Asia/Shanghai")
-	AddLocaleAlias("shanghai", timeZoneShanghai)
+	timeExtension.AddLocaleAlias("shanghai", timeZoneShanghai)
 	type Book struct {
 		Id          int        `json:"id"`
 		PublishedAt time.Time  `json:"published_at" time_location:"UTC"`
@@ -58,6 +77,8 @@ func TestLocale(t *testing.T) {
 }
 
 func TestUnMarshalZero(t *testing.T) {
+	json, _ := setup()
+
 	type Book struct {
 		Id        int        `json:"id"`
 		UpdatedAt *time.Time `json:"updated_at" time_location:"UTC"`
@@ -71,6 +92,8 @@ func TestUnMarshalZero(t *testing.T) {
 }
 
 func TestAlias(t *testing.T) {
+	json, timeExtension := setup()
+
 	type Book struct {
 		Id          int        `json:"id"`
 		PublishedAt *time.Time `json:"published_at" time_format:"sql_datetime"`
@@ -81,8 +104,10 @@ func TestAlias(t *testing.T) {
 	timeZoneShanghai, err := time.LoadLocation("Asia/Shanghai")
 	assert.Nil(t, err)
 
-	AddTimeFormatAlias("sql_datetime", "2006-01-02 15:04:05")
-	AddLocaleAlias("shanghai", timeZoneShanghai)
+	timeExtension.AddTimeFormatAlias("sql_datetime", "2006-01-02 15:04:05")
+	timeExtension.AddLocaleAlias("shanghai", timeZoneShanghai)
+	timeExtension.SetDefaultTimeFormat(time.RFC3339, timeZoneShanghai)
+
 	t2018 := time.Date(2018, 1, 1, 0, 0, 0, 0, timeZoneShanghai)
 	book1 := Book{
 		Id:        1,
