@@ -121,3 +121,32 @@ func TestAlias(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, book1, book2)
 }
+
+func TestUnixTime(t *testing.T) {
+	json, timeExtension := setup()
+
+	type Book struct {
+		Id          int        `json:"id"`
+		PublishedAt *time.Time `json:"published_at" time_format:"unix"`
+		UpdatedAt   *time.Time `json:"updated_at" time_format:"unixmilli"`
+		CreatedAt   time.Time  `json:"created_at" time_format:"unixmicro"`
+		DeletedAt   time.Time  `json:"deleted_at" time_format:"unixnano"`
+	}
+
+	timeZoneShanghai, err := time.LoadLocation("Asia/Shanghai")
+	assert.Nil(t, err)
+	t2018 := time.Date(2018, 1, 1, 0, 0, 0, 0, timeZoneShanghai)
+	timeExtension.SetDefaultTimeFormat(time.RFC3339, timeZoneShanghai)
+
+	book1 := Book{
+		Id:          0,
+		PublishedAt: &t2018,
+		UpdatedAt:   nil,
+		CreatedAt:   t2018,
+		DeletedAt:   t2018,
+	}
+
+	bytes, err := json.Marshal(book1)
+	assert.Nil(t, err)
+	assert.Equal(t, `{"id":0,"published_at":1514736000,"updated_at":null,"created_at":1514736000000000,"deleted_at":1514736000000000000}`, string(bytes))
+}

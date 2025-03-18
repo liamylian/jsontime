@@ -2,10 +2,11 @@ package jsontime
 
 import (
 	"maps"
+	"strconv"
 	"time"
 	"unsafe"
 
-	"github.com/json-iterator/go"
+	jsoniter "github.com/json-iterator/go"
 )
 
 // time format alias
@@ -25,6 +26,12 @@ const (
 	StampMilli  = "StampMilli"
 	StampMicro  = "StampMicro"
 	StampNano   = "StampNano"
+
+	// Unix timestamp formats
+	Unix      = "unix"
+	UnixMilli = "unixmilli"
+	UnixMicro = "unixmicro"
+	UnixNano  = "unixnano"
 )
 
 // time zone alias
@@ -54,11 +61,27 @@ var _formatAlias = map[string]string{
 	StampMilli:  time.StampMilli,
 	StampMicro:  time.StampMicro,
 	StampNano:   time.StampNano,
+
+	// Unix timestamp formats use themselves as keys
+	Unix:      Unix,
+	UnixMilli: UnixMilli,
+	UnixMicro: UnixMicro,
+	UnixNano:  UnixNano,
 }
 
 var _localeAlias = map[string]*time.Location{
 	Local: time.Local,
 	UTC:   time.UTC,
+}
+
+// isUnixFormat returns whether the format is one of the Unix timestamp formats
+func isUnixFormat(format string) bool {
+	switch format {
+	case Unix, UnixMilli, UnixMicro, UnixNano:
+		return true
+	default:
+		return false
+	}
 }
 
 type CustomTimeExtension struct {
@@ -141,8 +164,24 @@ func (extension *CustomTimeExtension) UpdateStructDescriptor(structDescriptor *j
 
 			if tp != nil {
 				lt := tp.In(locale)
-				str := lt.Format(timeFormat)
-				stream.WriteString(str)
+
+				if isUnixFormat(timeFormat) {
+					var timestamp int64
+					switch timeFormat {
+					case Unix:
+						timestamp = lt.Unix()
+					case UnixMilli:
+						timestamp = lt.UnixMilli()
+					case UnixMicro:
+						timestamp = lt.UnixMicro()
+					case UnixNano:
+						timestamp = lt.UnixNano()
+					}
+					stream.WriteInt64(timestamp)
+				} else {
+					str := lt.Format(timeFormat)
+					stream.WriteString(str)
+				}
 			} else {
 				stream.Write([]byte("null"))
 			}
@@ -153,18 +192,38 @@ func (extension *CustomTimeExtension) UpdateStructDescriptor(structDescriptor *j
 				return
 			}
 
-			str := iter.ReadString()
 			var t *time.Time
-			if str != "" {
-				var err error
-				tmp, err := time.ParseInLocation(timeFormat, str, locale)
-				if err != nil {
-					iter.Error = err
+
+			if isUnixFormat(timeFormat) {
+				switch iter.WhatIsNext() {
+				case jsoniter.NumberValue:
+					tt := unixTimeDecoder(iter.ReadInt64(), timeFormat)
+					t = &tt
+				case jsoniter.StringValue:
+					if str := iter.ReadString(); str != "" {
+						timestamp, _ := strconv.ParseInt(str, 10, 64)
+						tt := unixTimeDecoder(timestamp, timeFormat)
+						t = &tt
+					}
+				case jsoniter.NilValue:
+					iter.ReadNil()
+					t = nil
+				default:
+					iter.ReportError("time.Time", "expect number or string")
 					return
 				}
-				t = &tmp
 			} else {
-				t = nil
+				if str := iter.ReadString(); str != "" {
+					var err error
+					tmp, err := time.ParseInLocation(timeFormat, str, locale)
+					if err != nil {
+						iter.Error = err
+						return
+					}
+					t = &tmp
+				} else {
+					t = nil
+				}
 			}
 
 			if isPtr {
@@ -177,6 +236,21 @@ func (extension *CustomTimeExtension) UpdateStructDescriptor(structDescriptor *j
 				}
 			}
 		}}
+	}
+}
+
+func unixTimeDecoder(t int64, format string) time.Time {
+	switch format {
+	case Unix:
+		return time.Unix(t, 0)
+	case UnixMilli:
+		return time.UnixMilli(t)
+	case UnixMicro:
+		return time.UnixMicro(t)
+	case UnixNano:
+		return time.Unix(0, t)
+	default:
+		return time.Unix(t, 0)
 	}
 }
 
