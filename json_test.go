@@ -146,7 +146,13 @@ func TestUnixTime(t *testing.T) {
 		DeletedAt:   t2018,
 	}
 
-	bytes, err := json.Marshal(book1)
+	bytes1, err := json.Marshal(book1)
 	assert.Nil(t, err)
-	assert.Equal(t, `{"id":0,"published_at":1514736000,"updated_at":null,"created_at":1514736000000000,"deleted_at":1514736000000000000}`, string(bytes))
+	assert.Equal(t, `{"id":0,"published_at":1514736000,"updated_at":null,"created_at":1514736000000000,"deleted_at":1514736000000000000}`, string(bytes1))
+
+	book2 := Book{}
+	err = json.Unmarshal(bytes1, &book2)
+	assert.Nil(t, err)
+	bytes2, _ := json.Marshal(book2)
+	assert.Equal(t, `{"id":0,"published_at":1514736000,"updated_at":null,"created_at":1514736000000000,"deleted_at":1514736000000000000}`, string(bytes2))
 }
