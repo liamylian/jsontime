@@ -26,6 +26,9 @@ const (
 	StampMilli  = "StampMilli"
 	StampMicro  = "StampMicro"
 	StampNano   = "StampNano"
+	DateTime    = "DateTime"
+	DateOnly    = "DateOnly"
+	TimeOnly    = "TimeOnly"
 
 	// Unix timestamp formats
 	Unix      = "unix"
@@ -61,6 +64,9 @@ var _formatAlias = map[string]string{
 	StampMilli:  time.StampMilli,
 	StampMicro:  time.StampMicro,
 	StampNano:   time.StampNano,
+	DateTime:    time.DateTime,
+	DateOnly:    time.DateOnly,
+	TimeOnly:    time.TimeOnly,
 
 	// Unix timestamp formats use themselves as keys
 	Unix:      Unix,
